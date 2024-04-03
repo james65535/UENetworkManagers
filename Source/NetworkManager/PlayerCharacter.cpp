@@ -1,18 +1,18 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "NetworkManagerCharacter.h"
+#include "PlayerCharacter.h"
+
+#include "InventoryNetManager.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 
-//////////////////////////////////////////////////////////////////////////
-// ANetworkManagerCharacter
-
-ANetworkManagerCharacter::ANetworkManagerCharacter()
+APlayerCharacter::APlayerCharacter()
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
@@ -51,36 +51,23 @@ ANetworkManagerCharacter::ANetworkManagerCharacter()
 	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>("InventoryComponent");
 }
 
-void ANetworkManagerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 }
 
-// void ANetworkManagerCharacter::AddInventoryItem()
-// {
-// 	S_AddInventoryItem_Implementation();
-// }
-//
-// void ANetworkManagerCharacter::RemoveInventoryItem()
-// {
-// 	S_RemoveInventoryItem_Implementation();
-// }
-
-void ANetworkManagerCharacter::BeginPlay()
+UInventoryComponent* APlayerCharacter::GetInventoryComponent() const
 {
-	// Call the base class  
-	Super::BeginPlay();
-	
+	return InventoryComponent;
 }
 
-// void ANetworkManagerCharacter::S_AddInventoryItem_Implementation()
-// {
-// 	if (IsValid(InventoryComponent))
-// 	{ InventoryComponent->AddItem(FPrimaryAssetId()); }
-// }
-//
-// void ANetworkManagerCharacter::S_RemoveInventoryItem_Implementation()
-// {
-// 	if (IsValid(InventoryComponent))
-// 	{ InventoryComponent->RemoveItem(FPrimaryAssetId()); }
-// }
+void APlayerCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (AInventoryNetManager* InventoryNetManager= Cast<AInventoryNetManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AInventoryNetManager::StaticClass())))
+	{
+		if (!IsRunningClientOnly())
+		{ InventoryNetManager->RegisterCharacter(this); }
+	}
+}

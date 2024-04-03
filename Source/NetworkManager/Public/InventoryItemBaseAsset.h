@@ -24,7 +24,7 @@ public:
 
 	/** Image to be used for visual depiction in Inventory */
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Inventory")
-	UTexture* ItemInventoryImage;
+	UTexture2D* ItemInventoryImage;
 	
 	// UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Inventory")
 	// TSubclassOf<UInventoryItemComponent> ItemClass;

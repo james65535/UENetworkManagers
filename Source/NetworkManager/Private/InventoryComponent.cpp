@@ -3,7 +3,6 @@
 
 #include "InventoryComponent.h"
 
-#include "InventoryItemBaseAsset.h"
 #include "GameFramework/Character.h"
 
 void UInventoryComponent::BeginPlay()
@@ -13,33 +12,11 @@ void UInventoryComponent::BeginPlay()
 	OwningCharacter = Cast<ACharacter>(GetOwner());
 }
 
-TArray<uint8> UInventoryComponent::Encode()
+void UInventoryComponent::PostReplication(const TArray<FInventoryItem>& InventoryItems)
 {
-	ensureAlwaysMsgf(!IsRunningClientOnly(), TEXT("Client attempted to encode inventory for replication"));
+	Items = InventoryItems;
 
-	TArray<uint8> Payload;
-	FMemoryWriter Archive(Payload);
-	Archive.Serialize(&Items, Items.GetAllocatedSize());
-	return Payload;
-}
-
-void UInventoryComponent::Decode(const TArray<uint8>& Payload)
-{
-	FMemoryReader Archive(Payload);
-	Archive.Serialize(&Items, Items.GetAllocatedSize());
-	for (FInventoryItem& ItemInfo : Items)
-	{
-		UE_LOG(LogTemp, Warning,
-			TEXT("Decoded Item: %s, ID: %s Quantity: %i"),
-			*ItemInfo.Item->GetName(),
-			*ItemInfo.PID.ToString(),
-			ItemInfo.Quantity);
-	}
-}
-
-void UInventoryComponent::PostReplication(const TArray<uint8>& Payload)
-{
-	Decode(Payload);
+	OnInventoryItemUpdate.Broadcast(OwningCharacter, false);
 }
 
 void UInventoryComponent::AddItem(const FInventoryItem& InventoryItem)
@@ -53,22 +30,20 @@ void UInventoryComponent::AddItem(const FInventoryItem& InventoryItem)
 	
 	/** Increment Item if it is already in inventory, otherwise add it it */
 	FPrimaryAssetId PID;
-	int8 Quantity = 0u;
-	if (FoundItemIndex != INDEX_NONE)
+	if (FoundItemIndex != INDEX_NONE && Items[FoundItemIndex].Quantity >= 1)
 	{
-		Quantity = Items[FoundItemIndex].Quantity++;
 		PID = Items[FoundItemIndex].PID;
+		Items[FoundItemIndex].Quantity += InventoryItem.Quantity;
 	}
 	else
 	{
 		Items.Add(InventoryItem);
-		Quantity = InventoryItem.Quantity;
 		PID = InventoryItem.PID;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("Added Item with PID: %s"), *PID.ToString());
+	UE_LOG(LogTemp, Warning, TEXT("Inventory Component added Item with PID: %s"), *PID.ToString());
 			
-	OnInventoryItemUpdate.Broadcast(OwningCharacter, PID, Quantity, false);
+	OnInventoryItemUpdate.Broadcast(OwningCharacter, false);
 }
 
 void UInventoryComponent::RemoveItem(const FInventoryItem& InventoryItem)
@@ -92,15 +67,12 @@ void UInventoryComponent::RemoveItem(const FInventoryItem& InventoryItem)
 		/** Item quantity is zero so remove from inventory */
 		Items.RemoveAt(ItemIndex);
 		Items.Shrink();
+	}
+	
+	OnInventoryItemUpdate.Broadcast(OwningCharacter, true);
+}
 
-		OnInventoryItemUpdate.Broadcast(OwningCharacter, InventoryItem.PID, 0u, true);
-	}
-	else
-	{
-		OnInventoryItemUpdate.Broadcast(
-			OwningCharacter,
-			Items[ItemIndex].PID,
-			Items[ItemIndex].Quantity,
-			false);
-	}
+void UInventoryComponent::GetItems(TArray<FInventoryItem>& InventoryItems)
+{
+	InventoryItems = Items;
 }

@@ -4,7 +4,7 @@
 #include "Spawner.h"
 
 
-#include "InventoryItemBaseAsset.h"
+#include "InventoryComponent.h"
 #include "Engine/AssetManager.h"
 #include "Engine/StreamableManager.h"
 #include "Net/UnrealNetwork.h"
@@ -30,7 +30,7 @@ ASpawner::ASpawner()
 		RootComponent = SphereMeshComponent;
 	}
 	
-	ItemsRingBuffer = TRingBuffer<FInventoryItem>();
+	ItemsRingBuffer = TRingBuffer<UInventoryItemBaseAsset*>();
 	OfferedItemName = "Empty";
 	
 	ItemTextRenderComponent = CreateDefaultSubobject<UTextRenderComponent>("ItemTextRender");
@@ -61,7 +61,7 @@ void ASpawner::BeginPlay()
 {
 	Super::BeginPlay();
 
-	OfferedItem = FInventoryItem();
+	OfferedItem = nullptr;
 	
 	/** Setup manager references */
 	AssetManager = UAssetManager::GetIfValid();
@@ -89,16 +89,16 @@ void ASpawner::NotifyActorBeginOverlap(AActor* OtherActor)
 	
 	if (UInventoryComponent* InventoryComponent = Cast<UInventoryComponent>(OtherActor->GetComponentByClass(UInventoryComponent::StaticClass())))
 	{
-		InventoryComponent->AddItem(OfferedItem);
+		InventoryComponent->AddItem(FInventoryItem(OfferedItem->GetPrimaryAssetId(), OfferedItem->Quantity));
 		/** Offer up a new Item
 		 * Can change this to take quantity into account instead of always advancing to the next item in the collection */
 		SetOfferedItem();
 	}
 }
 
-void ASpawner::LoadItemAssets(const TArray<FPrimaryAssetId>& PIDs)
+void ASpawner::LoadItemAssets(const TArray<FPrimaryAssetId>& PrimaryIdCollection)
 {
-	if (PIDs.IsEmpty())
+	if (PrimaryIdCollection.IsEmpty())
 	{ return; }
 	
 	/** Asset Categories to load, use empty array to get all of them */
@@ -108,23 +108,23 @@ void ASpawner::LoadItemAssets(const TArray<FPrimaryAssetId>& PIDs)
 	const FStreamableDelegate AssetAsyncLoadDelegate = FStreamableDelegate::CreateUObject(
 		this,
 		&ThisClass::OnItemAssetLoadFromAssetId,
-		PIDs);
+		PrimaryIdCollection);
 
 	/** Load assets with async load delegate */
-	AssetManager->LoadPrimaryAssets(PIDs, CategoryBundles, AssetAsyncLoadDelegate);
+	AssetManager->LoadPrimaryAssets(PrimaryIdCollection, CategoryBundles, AssetAsyncLoadDelegate); // TODO Investigate if we can use a 0 parameter delegate
 }
 
-void ASpawner::OnItemAssetLoadFromAssetId(const TArray<FPrimaryAssetId> PIDs)
+void ASpawner::OnItemAssetLoadFromAssetId(const TArray<FPrimaryAssetId> PrimaryIdCollection)
 {
 	/** for clients we just want to have the asset manager load the items
 	 * the server will take care of handling the inventory for the spawner */
 	if(IsRunningClientOnly())
 	{ return; }
 	
-	for (FPrimaryAssetId PID : PIDs)
+	for (FPrimaryAssetId PrimaryId : PrimaryIdCollection)
 	{
-		if (UInventoryItemBaseAsset* InventoryAsset = Cast<UInventoryItemBaseAsset>(AssetManager->GetPrimaryAssetObject(PID)))
-		{ ItemsRingBuffer.Add(FInventoryItem(InventoryAsset, PID, InventoryAsset->Quantity)); }
+		if (UInventoryItemBaseAsset* InventoryAsset = Cast<UInventoryItemBaseAsset>(AssetManager->GetPrimaryAssetObject(PrimaryId)))
+		{ ItemsRingBuffer.Add(InventoryAsset); }
 	}
 	
 	if (!ItemsRingBuffer.IsEmpty())
@@ -137,30 +137,30 @@ void ASpawner::OnItemAssetLoadFromAssetId(const TArray<FPrimaryAssetId> PIDs)
 void ASpawner::SetOfferedItem()
 {
 	OfferedItem = ItemsRingBuffer.First();
-	checkf(IsValid(OfferedItem.Item), TEXT("Spawner had a nul item when setting offered item"));
+	checkf(IsValid(OfferedItem), TEXT("Spawner had a nul item when setting offered item"));
 	ItemsRingBuffer.ShiftIndexToBack(0);
 
 	/** Set the name to be displayed by the spawner on the clients */
-	OfferedItemName = OfferedItem.Item->InventoryItemName;
+	OfferedItemName = OfferedItem->InventoryItemName;
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, OfferedItemName, this);
 	UE_LOG(LogTemp, Warning, TEXT("Server Spawner item name: %s"), *OfferedItemName.ToString());
 }
 
 // TODO multicast and create replication for items
-void ASpawner::SetOfferedItem(const FInventoryItem& InventoryItem)
+void ASpawner::SetOfferedItem(UInventoryItemBaseAsset* InInventoryItem)
 {
-	if (OfferedItem.Item == nullptr || OfferedItem.PID != InventoryItem.PID)
-	{ OfferedItem = InventoryItem; }
+	if (OfferedItem == nullptr || OfferedItem->GetPrimaryAssetId() != InInventoryItem->GetPrimaryAssetId())
+	{ OfferedItem = InInventoryItem; }
 	else
 	{
 		/** Find something else */
 		OfferedItem = ItemsRingBuffer.First();
-		checkf(IsValid(OfferedItem.Item), TEXT("Spawner had a nul item when setting offered item"));
+		checkf(IsValid(OfferedItem), TEXT("Spawner had a nul item when setting offered item"));
 		ItemsRingBuffer.ShiftIndexToBack(0);
 	}
 
 	/** Set the name to be displayed by the spawner on the clients */
-	OfferedItemName = OfferedItem.Item->InventoryItemName;
+	OfferedItemName = OfferedItem->InventoryItemName;
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, OfferedItemName, this);
 	UE_LOG(LogTemp, Warning, TEXT("Server Spawner item name: %s"), *OfferedItemName.ToString());
 }

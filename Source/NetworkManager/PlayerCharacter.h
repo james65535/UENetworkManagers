@@ -5,11 +5,11 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "InventoryComponent.h"
-#include "NetworkManagerCharacter.generated.h"
+#include "PlayerCharacter.generated.h"
 
 
 UCLASS(config=Game)
-class ANetworkManagerCharacter : public ACharacter
+class APlayerCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
@@ -24,17 +24,15 @@ class ANetworkManagerCharacter : public ACharacter
 
 public:
 	
-	ANetworkManagerCharacter();
+	APlayerCharacter();
 
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
-	// UFUNCTION(Category = "Inventory")
-	// void AddInventoryItem();
-	// UFUNCTION(Category = "Inventory")
-	// void RemoveInventoryItem();
+	UFUNCTION(BlueprintCallable)
+	UInventoryComponent* GetInventoryComponent() const;
 
 protected:
 

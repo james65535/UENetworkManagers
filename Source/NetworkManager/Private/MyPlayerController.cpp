@@ -2,8 +2,10 @@
 
 
 #include "MyPlayerController.h"
+
 #include "EnhancedInput/Public/EnhancedInputComponent.h"
 #include "EnhancedInput/Public/EnhancedInputSubsystems.h"
+#include "NetworkManager/PlayerCharacter.h"
 
 
 void AMyPlayerController::BeginPlay()
@@ -22,7 +24,7 @@ void AMyPlayerController::BeginPlayingState()
 {
 	Super::BeginPlayingState();
 
-	PlayerCharacter = Cast<ANetworkManagerCharacter>(GetPawn());
+	PlayerCharacter = Cast<APlayerCharacter>(GetPawn());
 }
 
 void AMyPlayerController::SetupInputComponent()

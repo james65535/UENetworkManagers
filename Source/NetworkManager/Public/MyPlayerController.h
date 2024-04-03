@@ -6,8 +6,10 @@
 #include "GameFramework/PlayerController.h"
 #include "EnhancedInput/Public/InputActionValue.h"
 #include "EnhancedInput/Public/InputMappingContext.h"
-#include "NetworkManager/NetworkManagerCharacter.h"
 #include "MyPlayerController.generated.h"
+
+class APlayerCharacter;
+class UInputMappingContext;
 
 /**
  * 
@@ -20,12 +22,12 @@ class NETWORKMANAGER_API AMyPlayerController : public APlayerController
 private:
 
 	UPROPERTY()
-	ANetworkManagerCharacter* PlayerCharacter;
+	APlayerCharacter* PlayerCharacter;
 	
 	/** Enhanced Input Setup */
 	/** MappingContext */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	class UInputMappingContext* DefaultMappingContext;
+	UInputMappingContext* DefaultMappingContext;
 	
 	/** Character Movement Requests */
 	UFUNCTION(BlueprintCallable, Category = "Movement")
@@ -42,7 +44,6 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void BeginPlayingState() override;
 	virtual void SetupInputComponent() override;
-	
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* MoveAction;

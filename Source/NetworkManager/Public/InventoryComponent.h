@@ -4,35 +4,45 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Serialization/ObjectAndNameAsStringProxyArchive.h"
 #include "InventoryComponent.generated.h"
 
-class UInventoryItemBaseAsset;
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnInventoryItemUpdate, const ACharacter*, const bool);
 
-DECLARE_MULTICAST_DELEGATE_FourParams(FOnInventoryItemUpdate, ACharacter*, const FPrimaryAssetId&, uint8, bool);
+struct FInventoryArchive : public FObjectAndNameAsStringProxyArchive
+{
+	FInventoryArchive(FArchive& InInnerArchive)
+	: FObjectAndNameAsStringProxyArchive(InInnerArchive, false){}
+};
 
 USTRUCT(BlueprintType)
 struct FInventoryItem
 {
 	GENERATED_BODY()
 	
-	UPROPERTY()
-	UInventoryItemBaseAsset* Item;
-
+	UPROPERTY(BlueprintReadOnly)
 	FPrimaryAssetId PID;
+	UPROPERTY(BlueprintReadOnly)
 	uint8 Quantity;
 
 	FInventoryItem()
 	{
-		Item = nullptr;
 		PID = FPrimaryAssetId();
 		Quantity = 0u;
 	}
 
-	FInventoryItem(UInventoryItemBaseAsset* InItem, const FPrimaryAssetId& InPID, const uint8 InQuantity)
+	FInventoryItem(const FPrimaryAssetId& InPID, const uint8 InQuantity)
 	{
-		Item = InItem;
 		PID = InPID;
 		Quantity = InQuantity;
+	}
+
+	friend FArchive& operator<<(FArchive& Ar, FInventoryItem& Output)
+	{
+		Ar << Output.PID;
+		Ar << Output.Quantity;
+	
+		return Ar;
 	}
 };
 
@@ -44,14 +54,13 @@ class NETWORKMANAGER_API UInventoryComponent : public UActorComponent
 public:	
 
 	/**
-	 * @param Payload Buffer Array to Decode
+	 * @param InventoryItems Collection of Inventory Items to Update
 	 */
-	void PostReplication(const TArray<uint8>& Payload);
-	TArray<uint8> Encode();
-	void Decode(const TArray<uint8>& Payload);
+	void PostReplication(const TArray<FInventoryItem>& InventoryItems);
 
 	void AddItem(const FInventoryItem& InventoryItem);
 	void RemoveItem(const FInventoryItem& InventoryItem);
+	void GetItems(TArray<FInventoryItem>& InventoryItems);
 
 	FOnInventoryItemUpdate OnInventoryItemUpdate;
 

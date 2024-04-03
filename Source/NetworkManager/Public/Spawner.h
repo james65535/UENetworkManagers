@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "InventoryComponent.h"
+#include "InventoryItemBaseAsset.h"
 #include "Components/TextRenderComponent.h"
 #include "Containers/RingBuffer.h"
 #include "GameFramework/Actor.h"
@@ -34,12 +34,15 @@ protected:
 	UPROPERTY(VisibleAnywhere)
 	UAssetManager* AssetManager;
 
-	void LoadItemAssets(const TArray<FPrimaryAssetId>& PIDs);
+	//** Request Asset Manager loads a collection of objects for supplied Primary IDs */
+	void LoadItemAssets(const TArray<FPrimaryAssetId>& PrimaryIdCollection);
 	bool bInitialAssetsLoaded = false;
 
+	//** Delegate called after asset manager has loaded an object from a Primary ID collection */
 	UFUNCTION()
-	void OnItemAssetLoadFromAssetId(const TArray<FPrimaryAssetId> PIDs);
-	TRingBuffer<FInventoryItem> ItemsRingBuffer;
+	void OnItemAssetLoadFromAssetId(const TArray<FPrimaryAssetId> PrimaryIdCollection);
+	//** Container for Items which can be offered by the Spawner */
+	TRingBuffer<UInventoryItemBaseAsset*> ItemsRingBuffer;
 
 	/**
 	 * @brief Gets the next item from container and sets the current offered item
@@ -48,19 +51,14 @@ protected:
 	/**
 	 * @brief Sets the Offered item to the specified InventoryItem
 	 */
-	void SetOfferedItem(const FInventoryItem& InventoryItem);
+	void SetOfferedItem(UInventoryItemBaseAsset* InInventoryItem);
 	UPROPERTY()
-	FInventoryItem OfferedItem;
-
+	UInventoryItemBaseAsset* OfferedItem;
 
 	UPROPERTY(ReplicatedUsing = "OnRep_OfferedItemName")
 	FName OfferedItemName;
 	UFUNCTION()
 	void OnRep_OfferedItemName();
-
-
-
-	
 	
 	
 };

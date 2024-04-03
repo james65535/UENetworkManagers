@@ -15,7 +15,8 @@ public class NetworkManager : ModuleRules
 			"Engine", 
 			"InputCore", 
 			"EnhancedInput",
-			"NetCore"
+			"NetCore",
+			"UMG"
 		});
 	}
 }

@@ -3,71 +3,69 @@
 
 #include "InventoryNetManager.h"
 
-#include "EngineUtils.h"
 #include "GameFramework/Character.h"
 #include "Net/UnrealNetwork.h"
+#include "NetworkManager/PlayerCharacter.h"
 
 // Sets default values
 AInventoryNetManager::AInventoryNetManager()
 {
 	bReplicates = true;
 	bAlwaysRelevant = true;
-}
-
-void AInventoryNetManager::BeginPlay()
-{
-	Super::BeginPlay();
-
-	for (ACharacter* Character : TActorRange<ACharacter>(GetWorld()))
-	{
-		if (UInventoryComponent* InventoryComponent = Cast<UInventoryComponent>(
-			Character->GetComponentByClass(UInventoryComponent::StaticClass())))
-		{
-			RegisterInventory(InventoryComponent, InventoryComponent->Encode());
-			InventoryComponent->OnInventoryItemUpdate.AddUObject(this, &ThisClass::InventoryUpdateDelegate);	
-			UE_LOG(LogTemp, Warning, TEXT("Network manager registered an inventory component of actor: %s"),
-				*Character->GetFullName());
-		}
-	}
-
-	UE_LOG(LogTemp, Warning, TEXT("Inventory Network Manager Running"));
+	bNetLoadOnClient = true;
 }
 
 void AInventoryNetManager::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
-	DOREPLIFETIME(ThisClass, ItemRegistry);
+	DOREPLIFETIME(ThisClass, InventoryRegistry);
 }
 
-void AInventoryNetManager::RegisterInventory(UInventoryComponent* InventoryComponent, const TArray<uint8>& Payload)
+void AInventoryNetManager::RegisterCharacter(APlayerCharacter* InCharacter)
 {
-	// TODO Update as follows:
-	// Payload: Inventory Item, quantity...
-	if (IsValid(InventoryComponent))
+	if (UInventoryComponent* InventoryComponent = InCharacter->GetInventoryComponent())
 	{
-		FItemEntry InventoryAssetEntry(InventoryComponent, Payload);
-		ItemRegistry.MarkItemDirty(ItemRegistry.Items.Add_GetRef(InventoryAssetEntry));
-		UE_LOG(LogTemp, Warning, TEXT("Network Manager register inventory"));
+		InventoryComponent->OnInventoryItemUpdate.AddUObject(this, &ThisClass::InventoryUpdateDelegate);
+		RegisterInventory(InventoryComponent);
 	}
 }
 
-void AInventoryNetManager::UpdateInventory(UInventoryComponent* InventoryComponent, const TArray<uint8>& Payload)
+void AInventoryNetManager::RegisterInventory(UInventoryComponent* InventoryComponent)
 {
-	FItemEntry* FoundEntry = ItemRegistry.Items.FindByPredicate([InventoryComponent](const FItemEntry& InItem)
-		{ return InItem.OwnerActor == InventoryComponent->GetOwner(); });
-	FoundEntry->Data = Payload;
-	ItemRegistry.MarkItemDirty(*FoundEntry);
+	if (!IsValid(InventoryComponent))
+	{ return; }
 
-	UE_LOG(LogTemp, Warning, TEXT("Network Manager updated inventory"));
+	TArray<FInventoryItem> InventoryList;
+	InventoryComponent->GetItems(InventoryList);
+	FItemEntry InventoryAssetEntry(InventoryComponent,InventoryList);
+	InventoryRegistry.MarkItemDirty(InventoryRegistry.Items.Add_GetRef(InventoryAssetEntry));
 }
 
-void AInventoryNetManager::InventoryUpdateDelegate(ACharacter* InCharacterOwner, const FPrimaryAssetId& PID, uint8 InQuantity, bool bIsRemoved)
+void AInventoryNetManager::UpdateInventory(UInventoryComponent* InventoryComponent)
+{
+	const uint8 RegistryIndex = InventoryRegistry.Items.IndexOfByPredicate(
+		[InventoryComponent](const FItemEntry& InItem)
+			{ return InItem.OwnerActor == InventoryComponent->GetOwner(); });
+
+	TArray<FInventoryItem> InventoryList;
+	InventoryComponent->GetItems(InventoryList);
+	InventoryRegistry.Items[RegistryIndex].InventoryItems = InventoryList;
+	InventoryRegistry.MarkItemDirty(InventoryRegistry.Items[RegistryIndex]);
+}
+
+void AInventoryNetManager::InventoryUpdateDelegate(const ACharacter* InCharacterOwner, const bool bDeletion)
 {
 	if (UInventoryComponent* InventoryComponent = Cast<UInventoryComponent>(
 		InCharacterOwner->GetComponentByClass(UInventoryComponent::StaticClass())))
 	{
-		UpdateInventory(InventoryComponent, InventoryComponent->Encode());
+		if (bDeletion)
+		{
+			// TODO implement deletion
+		}
+		else
+		{ UpdateInventory(InventoryComponent); }
+		
 	}
 	else
 	{

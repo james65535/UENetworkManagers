@@ -13,6 +13,9 @@ class ANetworkManagerGameMode : public AGameModeBase
 
 public:
 	ANetworkManagerGameMode();
+
+protected:
+	virtual void BeginPlay() override;
 };
 
 
