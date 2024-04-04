@@ -38,11 +38,11 @@ void AInventoryNetManager::RegisterInventory(UInventoryComponent* InventoryCompo
 
 	TArray<FInventoryItem> InventoryList;
 	InventoryComponent->GetItems(InventoryList);
-	FItemEntry InventoryAssetEntry(InventoryComponent,InventoryList);
+	const FItemEntry InventoryAssetEntry(InventoryComponent,InventoryList);
 	InventoryRegistry.MarkItemDirty(InventoryRegistry.Items.Add_GetRef(InventoryAssetEntry));
 }
 
-void AInventoryNetManager::UpdateInventory(UInventoryComponent* InventoryComponent)
+void AInventoryNetManager::UpdateInventory(UInventoryComponent* InventoryComponent, const bool bDeletion)
 {
 	const uint8 RegistryIndex = InventoryRegistry.Items.IndexOfByPredicate(
 		[InventoryComponent](const FItemEntry& InItem)
@@ -51,6 +51,7 @@ void AInventoryNetManager::UpdateInventory(UInventoryComponent* InventoryCompone
 	TArray<FInventoryItem> InventoryList;
 	InventoryComponent->GetItems(InventoryList);
 	InventoryRegistry.Items[RegistryIndex].InventoryItems = InventoryList;
+
 	InventoryRegistry.MarkItemDirty(InventoryRegistry.Items[RegistryIndex]);
 }
 
@@ -58,15 +59,7 @@ void AInventoryNetManager::InventoryUpdateDelegate(const ACharacter* InCharacter
 {
 	if (UInventoryComponent* InventoryComponent = Cast<UInventoryComponent>(
 		InCharacterOwner->GetComponentByClass(UInventoryComponent::StaticClass())))
-	{
-		if (bDeletion)
-		{
-			// TODO implement deletion
-		}
-		else
-		{ UpdateInventory(InventoryComponent); }
-		
-	}
+	{ UpdateInventory(InventoryComponent, bDeletion); }
 	else
 	{
 		UE_LOG(LogTemp, Warning,

@@ -34,10 +34,8 @@ private:
 	void RequestMove(const FInputActionValue& ActionValue);
 	UFUNCTION(BlueprintCallable, Category = "Movement")
 	void RequestLook(const FInputActionValue& ActionValue);
-	UFUNCTION(BlueprintCallable, Category = "Movement")
-	void RequestAddInventoryItem();
-	UFUNCTION(BlueprintCallable, Category = "Movement")
-	void RequestRemoveInventoryItem();
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void RequestUseInventoryItem();
 
 protected:
 	/** Class Overrides */
@@ -52,6 +50,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* AddInventoryItemAction;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* RemoveInventoryItemAction;
+	UInputAction* UseInventoryItemAction;
+
+	UFUNCTION(Server, Reliable)
+	void S_RequestUseInventoryItem();
 	
 };

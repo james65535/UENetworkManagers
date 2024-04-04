@@ -102,8 +102,7 @@ void ASpawner::LoadItemAssets(const TArray<FPrimaryAssetId>& PrimaryIdCollection
 	{ return; }
 	
 	/** Asset Categories to load, use empty array to get all of them */
-	TArray<FName> CategoryBundles;
-
+	const TArray<FName> CategoryBundles;
 	/** Async Load Delegate */
 	const FStreamableDelegate AssetAsyncLoadDelegate = FStreamableDelegate::CreateUObject(
 		this,
@@ -143,10 +142,8 @@ void ASpawner::SetOfferedItem()
 	/** Set the name to be displayed by the spawner on the clients */
 	OfferedItemName = OfferedItem->InventoryItemName;
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, OfferedItemName, this);
-	UE_LOG(LogTemp, Warning, TEXT("Server Spawner item name: %s"), *OfferedItemName.ToString());
 }
 
-// TODO multicast and create replication for items
 void ASpawner::SetOfferedItem(UInventoryItemBaseAsset* InInventoryItem)
 {
 	if (OfferedItem == nullptr || OfferedItem->GetPrimaryAssetId() != InInventoryItem->GetPrimaryAssetId())
@@ -162,7 +159,6 @@ void ASpawner::SetOfferedItem(UInventoryItemBaseAsset* InInventoryItem)
 	/** Set the name to be displayed by the spawner on the clients */
 	OfferedItemName = OfferedItem->InventoryItemName;
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, OfferedItemName, this);
-	UE_LOG(LogTemp, Warning, TEXT("Server Spawner item name: %s"), *OfferedItemName.ToString());
 }
 
 void ASpawner::OnRep_OfferedItemName()
@@ -172,7 +168,6 @@ void ASpawner::OnRep_OfferedItemName()
 	
 	/** Change spawner text display so player can see which item is offered */
 	const FText OfferedItemNameToDisplay = FText::FromName(OfferedItemName);
-	UE_LOG(LogTemp, Warning, TEXT("Client Spawner item name: %s"), *OfferedItemNameToDisplay.ToString());
 	ItemTextRenderComponent->SetText(OfferedItemNameToDisplay);
 }
 

@@ -88,6 +88,8 @@ public:
 	// Sets default values for this actor's properties
 	AInventoryNetManager();
 
+	// TODO Basic Impl, does not cover removal of players / Inventories
+	// this would need to be added and use mark array dirty when removing a FItemEntry
 	UFUNCTION(BlueprintCallable)
 	void RegisterCharacter(APlayerCharacter* InCharacter);
 	
@@ -101,7 +103,7 @@ public:
 	 * @brief Updates the data of an element in our fast array. For that, we find the owner actor within the array and update the data on the found entry 
 	 */
 	UFUNCTION(BlueprintCallable)
-	void UpdateInventory(UInventoryComponent* InventoryComponent);
+	void UpdateInventory(UInventoryComponent* InventoryComponent, const bool bDeletion = false);
 
 	/**
 	 * @brief Function delegate to trigger from InventoryComponent Updates

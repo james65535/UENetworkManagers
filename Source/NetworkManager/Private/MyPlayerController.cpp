@@ -50,16 +50,10 @@ void AMyPlayerController::SetupInputComponent()
 
 		/** Inventory Control */
 		EIPlayerComponent->BindAction(
-			AddInventoryItemAction,
+			UseInventoryItemAction,
 			ETriggerEvent::Triggered,
 			this,
-			&ThisClass::RequestAddInventoryItem);
-
-		EIPlayerComponent->BindAction(
-			RemoveInventoryItemAction,
-			ETriggerEvent::Triggered,
-			this,
-			&ThisClass::RequestRemoveInventoryItem);
+			&ThisClass::RequestUseInventoryItem);
 	}
 }
 
@@ -99,20 +93,20 @@ void AMyPlayerController::RequestLook(const FInputActionValue& ActionValue)
 	AddPitchInput(LookAxisVector.Y);
 }
 
-void AMyPlayerController::RequestAddInventoryItem()
-{
-	ensureAlwaysMsgf(IsValid(PlayerCharacter),
-		TEXT("Controller has an invalid Player Character upon add item"));
-
-	// PlayerCharacter->AddInventoryItem();
-}
-
-void AMyPlayerController::RequestRemoveInventoryItem()
+void AMyPlayerController::RequestUseInventoryItem()
 {
 	ensureAlwaysMsgf(IsValid(PlayerCharacter),
 		TEXT("Controller has an invalid Player Character upon remove item"));
+	S_RequestUseInventoryItem();
+}
+
+void AMyPlayerController::S_RequestUseInventoryItem_Implementation()
+{
+	if (IsRunningClientOnly() || !IsValid(PlayerCharacter))
+	{ return; }
 	
-	// PlayerCharacter->RemoveInventoryItem();
+	if (UInventoryComponent* InventoryComponent = PlayerCharacter->GetInventoryComponent())
+	{ InventoryComponent->UseCurrentItem(); }
 }
 
 

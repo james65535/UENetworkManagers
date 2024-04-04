@@ -4,16 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "Serialization/ObjectAndNameAsStringProxyArchive.h"
 #include "InventoryComponent.generated.h"
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnInventoryItemUpdate, const ACharacter*, const bool);
-
-struct FInventoryArchive : public FObjectAndNameAsStringProxyArchive
-{
-	FInventoryArchive(FArchive& InInnerArchive)
-	: FObjectAndNameAsStringProxyArchive(InInnerArchive, false){}
-};
 
 USTRUCT(BlueprintType)
 struct FInventoryItem
@@ -36,14 +29,6 @@ struct FInventoryItem
 		PID = InPID;
 		Quantity = InQuantity;
 	}
-
-	friend FArchive& operator<<(FArchive& Ar, FInventoryItem& Output)
-	{
-		Ar << Output.PID;
-		Ar << Output.Quantity;
-	
-		return Ar;
-	}
 };
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -54,18 +39,22 @@ class NETWORKMANAGER_API UInventoryComponent : public UActorComponent
 public:	
 
 	/**
-	 * @param InventoryItems Collection of Inventory Items to Update
+	 * @param InventoryItems Collection of Inventory Items to Update After Replication
 	 */
 	void PostReplication(const TArray<FInventoryItem>& InventoryItems);
 
 	void AddItem(const FInventoryItem& InventoryItem);
 	void RemoveItem(const FInventoryItem& InventoryItem);
-	void GetItems(TArray<FInventoryItem>& InventoryItems);
+	/**
+	 * @result bool Success
+	 */
+	bool UseCurrentItem();
+	void GetItems(TArray<FInventoryItem>& InventoryItems) const;
 
 	FOnInventoryItemUpdate OnInventoryItemUpdate;
 
 protected:
-	// Called when the game starts
+
 	virtual void BeginPlay() override;
 
 	UPROPERTY()

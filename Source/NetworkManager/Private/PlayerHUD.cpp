@@ -37,7 +37,6 @@ void APlayerHUD::UpdateDisplayedInventory()
 		TArray<FInventoryItem> InventoryItems;
 		Character->GetInventoryComponent()->GetItems(InventoryItems);
 		InventoryWidget->UpdateDisplayedInventory(InventoryItems);
-		UE_LOG(LogTemp, Warning, TEXT("Found inv items: %i"), InventoryItems.Num());
 	}
 }
 

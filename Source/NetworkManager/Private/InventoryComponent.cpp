@@ -29,19 +29,10 @@ void UInventoryComponent::AddItem(const FInventoryItem& InventoryItem)
 			{ return InvItem.PID == InventoryItem.PID; });
 	
 	/** Increment Item if it is already in inventory, otherwise add it it */
-	FPrimaryAssetId PID;
 	if (FoundItemIndex != INDEX_NONE && Items[FoundItemIndex].Quantity >= 1)
-	{
-		PID = Items[FoundItemIndex].PID;
-		Items[FoundItemIndex].Quantity += InventoryItem.Quantity;
-	}
+	{ Items[FoundItemIndex].Quantity += InventoryItem.Quantity; }
 	else
-	{
-		Items.Add(InventoryItem);
-		PID = InventoryItem.PID;
-	}
-
-	UE_LOG(LogTemp, Warning, TEXT("Inventory Component added Item with PID: %s"), *PID.ToString());
+	{ Items.Add(InventoryItem); }
 			
 	OnInventoryItemUpdate.Broadcast(OwningCharacter, false);
 }
@@ -72,7 +63,16 @@ void UInventoryComponent::RemoveItem(const FInventoryItem& InventoryItem)
 	OnInventoryItemUpdate.Broadcast(OwningCharacter, true);
 }
 
-void UInventoryComponent::GetItems(TArray<FInventoryItem>& InventoryItems)
+bool UInventoryComponent::UseCurrentItem()
+{
+	if (Items.IsEmpty())
+	{ return false; }
+	
+	RemoveItem(Items[0]);
+	return true;
+}
+
+void UInventoryComponent::GetItems(TArray<FInventoryItem>& InventoryItems) const
 {
 	InventoryItems = Items;
 }
